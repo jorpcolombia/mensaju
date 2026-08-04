@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Next.js inlines NEXT_PUBLIC_* vars at build time and the Clerk
+          # provider throws during prerender if it's unset — a placeholder
+          # is sufficient for CI since no real Clerk calls happen at build
+          # time. Deploys must supply the real key as a build-time secret.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIta2V5LmNsZXJrLmFjY291bnRzLmRldiQ
+
+      - name: Test
+        run: pnpm test

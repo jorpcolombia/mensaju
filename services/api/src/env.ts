@@ -11,6 +11,12 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? "mongodb://localhost:27017/messages",
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
 
+  // Comma-separated list of allowed browser origins (apps/web, apps/admin).
+  corsOrigins: (process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:3001")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+
   // Two separate Clerk applications — org/agent auth and admin auth are
   // architecturally isolated, not just role-gated. See plan §3.
   clerkOrgSecretKey: process.env.CLERK_ORG_SECRET_KEY,

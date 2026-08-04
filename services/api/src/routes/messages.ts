@@ -4,7 +4,6 @@ import type {
   ListMessagesResponse,
   SendMessageRequest,
   SendMessageResponse,
-  UpdateMessageStatusRequest,
 } from "@messages/shared-types";
 import { resolveRequester } from "../middleware/requester.js";
 import { loadAuthorizedConversation } from "../lib/conversationAccess.js";
@@ -12,25 +11,34 @@ import { checkAndIncrementRateLimit } from "../lib/rateLimit.js";
 import { conversationChannelName, orgNotificationsChannelName, publish } from "../lib/ably.js";
 import { objectExists } from "../lib/s3.js";
 import { toMessageDto } from "../lib/dto.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { validateBody } from "../lib/validate.js";
+import { sendMessageSchema, updateMessageStatusSchema } from "../lib/schemas.js";
 
 export const messagesRouter: ExpressRouter = Router();
 
 messagesRouter.use(resolveRequester);
 
-messagesRouter.get("/conversations/:id/messages", async (req, res) => {
-  const { conversation, forbidden } = await loadAuthorizedConversation(req, req.params.id);
-  if (forbidden) return res.status(403).json({ error: "forbidden" });
-  if (!conversation) return res.status(404).json({ error: "not_found" });
+messagesRouter.get(
+  "/conversations/:id/messages",
+  asyncHandler(async (req, res) => {
+    const { conversation, forbidden } = await loadAuthorizedConversation(req, req.params.id);
+    if (forbidden) return res.status(403).json({ error: "forbidden" });
+    if (!conversation) return res.status(404).json({ error: "not_found" });
 
-  const messages = await Message.find({ conversationId: conversation._id }).sort({
-    createdAt: 1,
-  });
-  const body: ListMessagesResponse = { messages: messages.map(toMessageDto) };
-  res.json(body);
-});
+    const messages = await Message.find({ conversationId: conversation._id }).sort({
+      createdAt: 1,
+    });
+    const body: ListMessagesResponse = { messages: messages.map(toMessageDto) };
+    res.json(body);
+  }),
+);
 
-messagesRouter.post("/messages", async (req, res) => {
-  const { conversationId, organizationId, text, attachments } = req.body as SendMessageRequest;
+messagesRouter.post(
+  "/messages",
+  validateBody(sendMessageSchema),
+  asyncHandler(async (req, res) => {
+    const { conversationId, organizationId, text, attachments } = req.body as SendMessageRequest;
 
   let conversation;
   if (conversationId) {
@@ -94,23 +102,28 @@ messagesRouter.post("/messages", async (req, res) => {
 
   const body: SendMessageResponse = { message: dto };
   res.status(201).json(body);
-});
+  }),
+);
 
-messagesRouter.post("/messages/:id/status", async (req, res) => {
-  const { status } = req.body as UpdateMessageStatusRequest;
-  const message = await Message.findById(req.params.id);
-  if (!message) return res.status(404).json({ error: "not_found" });
+messagesRouter.post(
+  "/messages/:id/status",
+  validateBody(updateMessageStatusSchema),
+  asyncHandler(async (req, res) => {
+    const { status } = req.body as { status: "delivered" | "read" };
+    const message = await Message.findById(req.params.id);
+    if (!message) return res.status(404).json({ error: "not_found" });
 
-  const { forbidden } = await loadAuthorizedConversation(req, String(message.conversationId));
-  if (forbidden) return res.status(403).json({ error: "forbidden" });
+    const { forbidden } = await loadAuthorizedConversation(req, String(message.conversationId));
+    if (forbidden) return res.status(403).json({ error: "forbidden" });
 
-  message.status = status;
-  if (status === "delivered") message.deliveredAt = new Date();
-  if (status === "read") message.readAt = new Date();
-  await message.save();
+    message.status = status;
+    if (status === "delivered") message.deliveredAt = new Date();
+    if (status === "read") message.readAt = new Date();
+    await message.save();
 
-  const dto = toMessageDto(message);
-  await publish(conversationChannelName(String(message.conversationId)), "message.status", dto);
+    const dto = toMessageDto(message);
+    await publish(conversationChannelName(String(message.conversationId)), "message.status", dto);
 
-  res.json({ message: dto });
-});
+    res.json({ message: dto });
+  }),
+);

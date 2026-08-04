@@ -3,12 +3,15 @@ import { Conversation } from "@messages/db";
 import type { AblyTokenResponse } from "@messages/shared-types";
 import { resolveRequester } from "../middleware/requester.js";
 import { createAblyTokenRequest } from "../lib/ably.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
 
 export const ablyRouter: ExpressRouter = Router();
 
 ablyRouter.use(resolveRequester);
 
-ablyRouter.post("/token", async (req, res) => {
+ablyRouter.post(
+  "/token",
+  asyncHandler(async (req, res) => {
   let clientId: string;
   let capability: Record<string, string[]>;
 
@@ -37,4 +40,5 @@ ablyRouter.post("/token", async (req, res) => {
 
   const tokenRequest = await createAblyTokenRequest({ clientId, capability });
   res.json(tokenRequest as unknown as AblyTokenResponse);
-});
+  }),
+);
