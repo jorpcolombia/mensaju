@@ -27,14 +27,16 @@ ablyRouter.post(
       organizationId: req.agent.organizationId,
     }).select("_id");
     for (const c of conversations) {
-      capability[`conversation:${c._id}`] = ["subscribe", "publish", "presence"];
+      capability[`conversation:${c._id}`] = ["subscribe", "presence"];
     }
   } else {
     clientId = `customer:${req.customerId}`;
     const conversations = await Conversation.find({ customerId: req.customerId }).select("_id");
-    capability = {};
+    // New threads (e.g. agent outreach) are announced here; the client then
+    // re-authorizes to pick up the new conversation channel.
+    capability = { [`customer:${req.customerId}:notifications`]: ["subscribe"] };
     for (const c of conversations) {
-      capability[`conversation:${c._id}`] = ["subscribe", "publish", "presence"];
+      capability[`conversation:${c._id}`] = ["subscribe", "presence"];
     }
   }
 

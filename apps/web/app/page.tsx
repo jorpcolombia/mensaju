@@ -1,5 +1,6 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { APP_NAME } from "@messages/shared-types";
+import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -10,7 +11,19 @@ export default function HomePage() {
       </SignedOut>
       <SignedIn>
         <UserButton />
-        {/* Conversation list lands here (plan §11 milestone 3) */}
+        <nav>
+          <ul>
+            <li>
+              <Link href="/conversations">Conversations</Link>
+            </li>
+            <li>
+              <Link href="/organization">Organization profile</Link>
+            </li>
+            <li>
+              <Link href="/agents/invite">Invite an agent</Link>
+            </li>
+          </ul>
+        </nav>
       </SignedIn>
     </main>
   );

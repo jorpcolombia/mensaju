@@ -16,6 +16,8 @@ export interface CustomerAuthProvider {
 export interface CustomerDoc {
   displayName?: string;
   authProviders: CustomerAuthProvider[];
+  /** Unset until the customer has signed in at least once (i.e. shell profiles created by agent outreach). */
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +39,7 @@ const customerSchema = new Schema<CustomerDoc>(
   {
     displayName: { type: String },
     authProviders: { type: [authProviderSchema], default: [] },
+    lastLoginAt: { type: Date },
   },
   { timestamps: true },
 );

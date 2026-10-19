@@ -46,6 +46,7 @@ export interface AcceptAgentInviteResponse {
 
 export interface ListConversationsResponse {
   conversations: Conversation[];
+  nextCursor?: string;
 }
 
 export interface ListMessagesResponse {
@@ -56,6 +57,8 @@ export interface ListMessagesResponse {
 export interface SendMessageRequest {
   conversationId?: string;
   organizationId?: string; // when a customer starts a new conversation
+  /** Agents only: message a customer by identifier, creating the thread if needed. */
+  customer?: ResolveCustomerRequest;
   text?: string;
   attachments?: Attachment[];
 }
@@ -65,6 +68,20 @@ export interface SendMessageResponse {
 
 export interface UpdateMessageStatusRequest {
   status: "delivered" | "read";
+}
+
+export interface MarkConversationReadResponse {
+  messageIds: string[];
+}
+
+export interface AttachmentUrlResponse {
+  url: string;
+}
+
+export type DevicePlatform = "ios" | "android";
+export interface RegisterDeviceRequest {
+  platform: DevicePlatform;
+  token: string;
 }
 
 export interface PresignAttachmentRequest {

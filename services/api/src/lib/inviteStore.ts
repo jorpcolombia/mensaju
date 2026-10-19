@@ -22,8 +22,8 @@ export async function createAgentInvite(invite: AgentInvite): Promise<string> {
 
 export async function consumeAgentInvite(inviteId: string): Promise<AgentInvite | null> {
   const key = inviteKey(inviteId);
-  const raw = await redis.get(key);
+  // GETDEL so two concurrent accepts cannot both consume the same invite.
+  const raw = await redis.getdel(key);
   if (!raw) return null;
-  await redis.del(key);
   return JSON.parse(raw) as AgentInvite;
 }

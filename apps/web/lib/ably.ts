@@ -21,6 +21,8 @@ export interface AblyRealtimeInstance {
       subscribe(event: string, callback: (message: { data: unknown }) => void): void;
     };
   };
+  /** Re-runs token auth so new channel capabilities (e.g. a new conversation) take effect. */
+  auth: { authorize(): Promise<unknown> };
   close(): void;
 }
 

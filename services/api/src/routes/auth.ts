@@ -19,6 +19,7 @@ import {
   resolveOrCreateCustomer,
 } from "../lib/identity.js";
 import { verifyOAuthToken, type OAuthProviderName } from "../lib/oauth.js";
+import { clearOtpAttempts, isOtpLockedOut, recordFailedOtpAttempt } from "../lib/otpAttempts.js";
 import { toCustomerDto } from "../lib/dto.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { validateBody } from "../lib/validate.js";
@@ -45,7 +46,8 @@ authRouter.post(
       }
       res.status(202).json({ ok: true });
     } catch (err) {
-      res.status(502).json({ error: "otp_send_failed", detail: (err as Error).message });
+      console.error("OTP send failed", err);
+      res.status(502).json({ error: "otp_send_failed" });
     }
   }),
 );
@@ -57,16 +59,24 @@ authRouter.post(
     const { phone, code } = req.body as VerifyOtpRequest;
     const phoneE164 = normalizeIdentifier("phone", phone);
 
+    if (await isOtpLockedOut(phoneE164)) {
+      return res.status(429).json({ error: "too_many_attempts" });
+    }
+
     // Either channel may have been used to send the code; check both stores.
     const verified =
       (await smsOtpProvider.verifyCode(phoneE164, code)) ||
       (await whatsAppOtpProvider.verifyCode(phoneE164, code));
 
     if (!verified) {
+      await recordFailedOtpAttempt(phoneE164);
       return res.status(401).json({ error: "invalid_code" });
     }
+    await clearOtpAttempts(phoneE164);
 
     const customer = await resolveOrCreateCustomer("phone", phoneE164);
+    customer.lastLoginAt = new Date();
+    await customer.save();
     const token = issueCustomerToken(String(customer._id));
     const body: VerifyOtpResponse = { token, customer: toCustomerDto(customer) };
     res.json(body);
@@ -84,7 +94,8 @@ authRouter.post(
     try {
       identity = await verifyOAuthToken(provider, providerToken);
     } catch (err) {
-      return res.status(401).json({ error: "invalid_provider_token", detail: (err as Error).message });
+      console.error("OAuth verification failed", err);
+      return res.status(401).json({ error: "invalid_provider_token" });
     }
 
   // Prefer resolving by email when the provider supplies one (Google/Facebook);
@@ -111,6 +122,7 @@ authRouter.post(
       : await Customer.create({ authProviders: [] });
   }
 
+  customer.lastLoginAt = new Date();
   const alreadyLinked = customer.authProviders.some(
     (p) => p.provider === provider && p.providerUserId === identity.providerUserId,
   );
@@ -120,8 +132,8 @@ authRouter.post(
       providerUserId: identity.providerUserId,
       linkedAt: new Date(),
     });
-    await customer.save();
   }
+  await customer.save();
 
   const token = issueCustomerToken(String(customer._id));
   const body: OAuthCallbackResponse = { token, customer: toCustomerDto(customer) };

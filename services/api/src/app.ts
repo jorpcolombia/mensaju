@@ -12,6 +12,7 @@ import { conversationsRouter } from "./routes/conversations.js";
 import { messagesRouter } from "./routes/messages.js";
 import { ablyRouter } from "./routes/ably.js";
 import { attachmentsRouter } from "./routes/attachments.js";
+import { devicesRouter } from "./routes/devices.js";
 import { adminRouter } from "./routes/admin.js";
 import { errorHandler } from "./lib/errorHandler.js";
 import { authRateLimit, generalRateLimit } from "./lib/httpRateLimit.js";
@@ -41,6 +42,7 @@ export function createApp(): Express {
   app.use("/", messagesRouter); // mounts /conversations/:id/messages, /messages, /messages/:id/status
   app.use("/ably", ablyRouter);
   app.use("/attachments", attachmentsRouter);
+  app.use("/devices", devicesRouter);
   app.use("/admin", adminRouter);
 
   app.use(errorHandler);

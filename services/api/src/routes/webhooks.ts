@@ -51,6 +51,13 @@ webhooksRouter.post("/clerk-admin", raw({ type: "application/json" }), async (re
     });
     if (event.type === "user.created") {
       const clerkUserId = event.data.id;
+      // Fail closed: only allowlisted emails become admins, so open sign-ups on the
+      // admin Clerk app can never grant admin access by themselves.
+      const emails = (event.data.email_addresses ?? []).map((e) => e.email_address.toLowerCase());
+      if (!emails.some((e) => env.adminAllowedEmails.includes(e))) {
+        console.warn(`[webhook] admin signup ${clerkUserId} not in ADMIN_ALLOWED_EMAILS; ignoring`);
+        return res.status(200).json({ ok: true });
+      }
       const displayName =
         [event.data.first_name, event.data.last_name].filter(Boolean).join(" ") ||
         event.data.email_addresses?.[0]?.email_address ||

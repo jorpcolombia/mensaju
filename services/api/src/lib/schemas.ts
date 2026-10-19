@@ -35,11 +35,17 @@ export const sendMessageSchema = z
   .object({
     conversationId: objectId.optional(),
     organizationId: objectId.optional(),
+    customer: z
+      .object({
+        type: z.enum(["phone", "email", "govId"]),
+        value: z.string().trim().min(1).max(320),
+      })
+      .optional(),
     text: z.string().trim().min(1).max(4096).optional(),
     attachments: z.array(attachment).max(10).optional(),
   })
-  .refine((v) => v.conversationId ?? v.organizationId, {
-    message: "conversationId_or_organizationId_required",
+  .refine((v) => v.conversationId ?? v.organizationId ?? v.customer, {
+    message: "conversationId_or_organizationId_or_customer_required",
   })
   .refine((v) => v.text || (v.attachments && v.attachments.length > 0), {
     message: "text_or_attachments_required",
@@ -81,4 +87,24 @@ export const startConversationSchema = z.object({
 
 export const organizationApprovalActionSchema = z.object({
   note: z.string().trim().max(2000).optional(),
+});
+
+export const registerDeviceSchema = z.object({
+  platform: z.enum(["ios", "android"]),
+  token: z.string().trim().min(1).max(4096),
+});
+
+export const listMessagesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  before: objectId.optional(),
+});
+
+export const listConversationsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  before: z.string().datetime().optional(),
+});
+
+export const attachmentUrlQuerySchema = z.object({
+  conversationId: objectId,
+  s3Key: z.string().min(1),
 });

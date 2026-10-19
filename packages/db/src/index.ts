@@ -7,3 +7,4 @@ export * from "./models/conversation.js";
 export * from "./models/message.js";
 export * from "./models/admin.js";
 export * from "./models/approvalAuditLog.js";
+export * from "./models/device.js";

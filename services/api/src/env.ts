@@ -34,6 +34,27 @@ export const env = {
   customSmsApiUrl: process.env.CUSTOM_SMS_API_URL,
   customSmsApiKey: process.env.CUSTOM_SMS_API_KEY,
 
+  resendApiKey: process.env.RESEND_API_KEY,
+  emailFrom: process.env.EMAIL_FROM,
+  webBaseUrl: process.env.WEB_BASE_URL ?? "http://localhost:3000",
+
+  // OAuth audiences (the client ids our apps are registered with); tokens
+  // issued for any other app are rejected.
+  googleClientIds: (process.env.GOOGLE_OAUTH_CLIENT_ID ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+  appleClientIds: (process.env.APPLE_OAUTH_CLIENT_ID ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+
+  // Only these emails may become admins when they sign up to the admin Clerk app.
+  adminAllowedEmails: (process.env.ADMIN_ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+
   whatsappCloudApiToken: process.env.WHATSAPP_CLOUD_API_TOKEN,
   whatsappCloudPhoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID,
 };

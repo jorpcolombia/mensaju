@@ -57,5 +57,7 @@ const messageSchema = new Schema<MessageDoc>(
 );
 
 messageSchema.index({ conversationId: 1, createdAt: 1 });
+// Serves unread-count aggregation per conversation.
+messageSchema.index({ conversationId: 1, senderType: 1, status: 1 });
 
 export const Message = model<MessageDoc>("Message", messageSchema);

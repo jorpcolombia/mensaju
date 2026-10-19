@@ -1,5 +1,6 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { APP_NAME } from "@messages/shared-types";
+import Link from "next/link";
 
 export default function AdminHomePage() {
   return (
@@ -10,7 +11,9 @@ export default function AdminHomePage() {
       </SignedOut>
       <SignedIn>
         <UserButton />
-        {/* Pending-organization queue lands here (plan §11 milestone 4) */}
+        <p>
+          <Link href="/organizations">Review organizations (pending queue)</Link>
+        </p>
       </SignedIn>
     </main>
   );

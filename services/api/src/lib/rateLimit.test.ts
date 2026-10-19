@@ -4,16 +4,21 @@ const state = new Map<string, number>();
 
 vi.mock("./redis.js", () => ({
   redis: {
-    incr: vi.fn(async (key: string) => {
+    // Emulates the INCR-with-TTL Lua script: returns the new count.
+    eval: vi.fn(async (_script: string, _n: number, key: string) => {
       const next = (state.get(key) ?? 0) + 1;
       state.set(key, next);
       return next;
     }),
-    expire: vi.fn(async () => 1),
+    decr: vi.fn(async (key: string) => {
+      const next = (state.get(key) ?? 0) - 1;
+      state.set(key, next);
+      return next;
+    }),
   },
 }));
 
-const { checkAndIncrementRateLimit } = await import("./rateLimit.js");
+const { checkAndIncrementRateLimit, refundRateLimit } = await import("./rateLimit.js");
 
 describe("checkAndIncrementRateLimit", () => {
   beforeEach(() => {
@@ -38,5 +43,13 @@ describe("checkAndIncrementRateLimit", () => {
       await checkAndIncrementRateLimit("org-1");
     }
     expect(await checkAndIncrementRateLimit("org-2")).toBe(true);
+  });
+
+  it("frees a slot when a send is refunded", async () => {
+    for (let i = 0; i < 20; i++) {
+      await checkAndIncrementRateLimit("org-1");
+    }
+    await refundRateLimit("org-1");
+    expect(await checkAndIncrementRateLimit("org-1")).toBe(true);
   });
 });

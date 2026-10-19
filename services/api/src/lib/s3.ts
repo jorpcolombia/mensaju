@@ -36,11 +36,14 @@ export async function presignDownload(s3Key: string) {
   return getSignedUrl(s3(), command, { expiresIn: 300 });
 }
 
-export async function objectExists(s3Key: string): Promise<boolean> {
+/** Returns the stored object's size in bytes, or null if it doesn't exist. */
+export async function getObjectSize(s3Key: string): Promise<number | null> {
   try {
-    await s3().send(new HeadObjectCommand({ Bucket: required("S3_BUCKET"), Key: s3Key }));
-    return true;
+    const head = await s3().send(
+      new HeadObjectCommand({ Bucket: required("S3_BUCKET"), Key: s3Key }),
+    );
+    return head.ContentLength ?? 0;
   } catch {
-    return false;
+    return null;
   }
 }

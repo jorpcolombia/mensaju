@@ -62,13 +62,14 @@ export function toCustomerDto(doc: WithId<CustomerDoc>): Customer {
   };
 }
 
-export function toConversationDto(doc: WithId<ConversationDoc>): Conversation {
+export function toConversationDto(doc: WithId<ConversationDoc>, unreadCount?: number): Conversation {
   return {
     id: id(doc._id),
     organizationId: id(doc.organizationId as unknown as Types.ObjectId),
     customerId: id(doc.customerId as unknown as Types.ObjectId),
     lastMessageAt: doc.lastMessageAt?.toISOString(),
     lastMessagePreview: doc.lastMessagePreview,
+    unreadCount,
     createdAt: doc.createdAt.toISOString(),
   };
 }

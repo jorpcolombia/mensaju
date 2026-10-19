@@ -18,6 +18,10 @@ export function orgNotificationsChannelName(organizationId: string): string {
   return `org:${organizationId}:notifications`;
 }
 
+export function customerNotificationsChannelName(customerId: string): string {
+  return `customer:${customerId}:notifications`;
+}
+
 export async function publish(channelName: string, eventName: string, data: unknown) {
   await client().channels.get(channelName).publish(eventName, data);
 }

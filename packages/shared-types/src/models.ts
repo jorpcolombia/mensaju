@@ -61,6 +61,8 @@ export interface Conversation {
   customerId: ObjectIdString;
   lastMessageAt?: string;
   lastMessagePreview?: string;
+  /** Messages from the other party that the requester hasn't read yet. */
+  unreadCount?: number;
   createdAt: string;
 }
 
@@ -74,6 +76,8 @@ export interface Attachment {
   durationMs?: number;
   width?: number;
   height?: number;
+  /** Short-lived presigned download URL; only populated on message list responses. */
+  url?: string;
 }
 
 export type MessageSenderType = "agent" | "customer";
