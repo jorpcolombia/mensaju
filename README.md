@@ -78,10 +78,10 @@ This is a pnpm/Turborepo monorepo implementing the architecture above:
 
 ```
 apps/
-  web/       # Next.js — org/agent console (messages-org Clerk app)
+  web/       # Next.js — org/agent console (messages-org Clerk app) + customer web app at /c
   admin/     # Next.js — admin panel (messages-admin Clerk app, isolated)
-  ios/       # Swift skeleton (native, no React Native)
-  android/   # Kotlin skeleton (native)
+  ios/       # Swift source (native, no React Native) — no Xcode project yet
+  android/   # Kotlin source (native) — Gradle files unverified
 services/
   api/       # Node/TS REST API — auth, conversations/messages, rate
              # limiting, Ably token issuance, S3 presign, admin actions
@@ -122,6 +122,25 @@ pnpm --filter @messages/api dev      # API on :4000
 pnpm --filter @messages/web dev      # Web on :3000
 pnpm --filter @messages/admin dev    # Admin on :3001
 ```
+
+## Status
+
+Implemented and covered by tests (API) / built (web, admin): organizations, agents
+and invites, customers (phone OTP, Google/Apple/Facebook token exchange), agent- and
+customer-initiated conversations, media attachments, delivery/read status, the
+20-messages-per-hour cap for unapproved organizations, the admin approval workflow,
+realtime via Ably, and FCM/APNs push delivery.
+
+Not done / not verifiable without more tooling:
+
+- **iOS and Android apps** are source only. There is no Xcode project, the Gradle
+  setup has never been built, and the Google/Apple/Facebook sign-in SDKs are stubs.
+  Building them needs Xcode and the Android SDK.
+- **Push** is implemented server-side but has not been exercised against real
+  Firebase/Apple credentials.
+- **Real-service paths** (Clerk, Ably, S3, SMS/WhatsApp, Resend) are only exercised
+  through fakes in tests; the in-house SMS API contract for outreach notifications
+  (`POST {CUSTOM_SMS_API_URL}/sms/send`) is an assumption.
 
 ## Deployment
 

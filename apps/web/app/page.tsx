@@ -8,6 +8,9 @@ export default function HomePage() {
       <h1>{APP_NAME} — Org Console</h1>
       <SignedOut>
         <SignInButton />
+        <p>
+          Are you a customer? <Link href="/c">Sign in to your messages</Link>
+        </p>
       </SignedOut>
       <SignedIn>
         <UserButton />

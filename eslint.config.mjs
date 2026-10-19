@@ -25,6 +25,11 @@ export default tseslint.config(
     },
   },
   {
+    // Config files run in Node.
+    files: ["**/*.config.mjs"],
+    languageOptions: { globals: { process: "readonly" } },
+  },
+  {
     files: ["apps/web/**/*.{ts,tsx}", "apps/admin/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: {
