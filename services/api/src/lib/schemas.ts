@@ -16,6 +16,12 @@ export const createOrganizationSchema = z.object({
   name: z.string().trim().min(1).max(200),
 });
 
+export const updateOrganizationProfileSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().trim().max(1000).optional(),
+  websiteUrl: z.string().trim().url().max(2048).optional(),
+});
+
 export const inviteAgentSchema = z.object({
   email: z.string().trim().email(),
   role: z.enum(["owner", "admin", "member"]),

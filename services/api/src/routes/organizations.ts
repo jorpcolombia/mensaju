@@ -6,6 +6,8 @@ import type {
   InviteAgentRequest,
   InviteAgentResponse,
   ListOrganizationDirectoryResponse,
+  UpdateOrganizationProfileRequest,
+  UpdateOrganizationProfileResponse,
 } from "@messages/shared-types";
 import { requireOrgSession } from "../middleware/auth.js";
 import { loadAgent, requireAgentRole } from "../middleware/agentContext.js";
@@ -14,7 +16,11 @@ import { sendAgentInviteEmail } from "../lib/email.js";
 import { toOrganizationDto, toAgentDto } from "../lib/dto.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { validateBody } from "../lib/validate.js";
-import { createOrganizationSchema, inviteAgentSchema } from "../lib/schemas.js";
+import {
+  createOrganizationSchema,
+  inviteAgentSchema,
+  updateOrganizationProfileSchema,
+} from "../lib/schemas.js";
 
 export const organizationsRouter: ExpressRouter = Router();
 
@@ -73,16 +79,68 @@ organizationsRouter.post(
   }),
 );
 
-/** Browsable directory of approved orgs a customer can start a conversation with. */
+/** Browsable directory of approved (verified) orgs a customer can start a conversation with. Must precede "/:id". */
 organizationsRouter.get(
   "/directory",
   asyncHandler(async (_req, res) => {
     const organizations = await Organization.find({ approvalStatus: "approved" })
-      .select("_id name")
+      .select("_id name description websiteUrl")
       .lean();
     const body: ListOrganizationDirectoryResponse = {
-      organizations: organizations.map((o) => ({ id: String(o._id), name: o.name })),
+      organizations: organizations.map((o) => ({
+        id: String(o._id),
+        name: o.name,
+        description: o.description,
+        websiteUrl: o.websiteUrl,
+      })),
     };
     res.json(body);
   }),
 );
+
+/**
+ * Updates an org's public profile (name, description, website). Approved
+ * ("verified") orgs show these fields in the customer-facing directory.
+ */
+organizationsRouter.patch(
+  "/:id",
+  requireOrgSession(),
+  loadAgent,
+  requireAgentRole("owner", "admin"),
+  validateBody(updateOrganizationProfileSchema),
+  asyncHandler(async (req, res) => {
+    if (String(req.agent!.organizationId) !== req.params.id) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const { name, description, websiteUrl } = req.body as UpdateOrganizationProfileRequest;
+    const organization = await Organization.findById(req.params.id);
+    if (!organization) return res.status(404).json({ error: "not_found" });
+
+    if (name !== undefined) organization.name = name;
+    if (description !== undefined) organization.description = description;
+    if (websiteUrl !== undefined) organization.websiteUrl = websiteUrl;
+    await organization.save();
+
+    const body: UpdateOrganizationProfileResponse = {
+      organization: toOrganizationDto(organization),
+    };
+    res.json(body);
+  }),
+);
+
+/** Fetches an org's own full profile (own agents only). */
+organizationsRouter.get(
+  "/:id",
+  requireOrgSession(),
+  loadAgent,
+  asyncHandler(async (req, res) => {
+    if (String(req.agent!.organizationId) !== req.params.id) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const organization = await Organization.findById(req.params.id);
+    if (!organization) return res.status(404).json({ error: "not_found" });
+
+    res.json({ organization: toOrganizationDto(organization) });
+  }),
+);
+

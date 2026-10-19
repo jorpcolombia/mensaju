@@ -92,20 +92,36 @@ packages/
 
 ## Development
 
+Requires `pnpm` (`pnpm@11.20.0`) and Node `>=20`. Requires local MongoDB
+and Redis (or point `MONGODB_URI`/`REDIS_URL` at hosted instances), plus
+Clerk (two separate apps), Ably, S3, and the custom SMS/WhatsApp Cloud
+API credentials to exercise auth/messaging end-to-end.
+
+### Quick start
+
+```bash
+pnpm install
+bash scripts/setup-local-env.sh   # copies .env files + starts Mongo/Redis via docker compose
+pnpm dev                          # runs api/web/admin together via turbo
+```
+
+`scripts/setup-local-env.sh` prints which env vars still need to be
+filled in by hand (Clerk keys, Ably, S3, SMS/WhatsApp) after it runs.
+
+### Manual setup
+
 ```bash
 pnpm install
 cp services/api/.env.example services/api/.env      # then fill in secrets
 cp apps/web/.env.example apps/web/.env.local
 cp apps/admin/.env.example apps/admin/.env.local
+
+docker compose up -d mongo redis   # or point MONGODB_URI/REDIS_URL at hosted instances
+
 pnpm --filter @messages/api dev      # API on :4000
 pnpm --filter @messages/web dev      # Web on :3000
 pnpm --filter @messages/admin dev    # Admin on :3001
 ```
-
-Requires a local MongoDB and Redis (or point `MONGODB_URI`/`REDIS_URL` at
-hosted instances), plus Clerk (two separate apps), Ably, S3, and the
-custom SMS/WhatsApp Cloud API credentials to exercise auth/messaging
-end-to-end.
 
 ## Deployment
 

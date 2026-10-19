@@ -4,6 +4,8 @@ export type ApprovalStatus = "pending" | "approved" | "rejected" | "suspended";
 
 export interface OrganizationDoc {
   name: string;
+  description?: string;
+  websiteUrl?: string;
   approvalStatus: ApprovalStatus;
   approvedAt?: Date;
   approvedBy?: Types.ObjectId;
@@ -14,6 +16,8 @@ export interface OrganizationDoc {
 const organizationSchema = new Schema<OrganizationDoc>(
   {
     name: { type: String, required: true },
+    description: { type: String, maxlength: 1000 },
+    websiteUrl: { type: String, maxlength: 2048 },
     approvalStatus: {
       type: String,
       enum: ["pending", "approved", "rejected", "suspended"],

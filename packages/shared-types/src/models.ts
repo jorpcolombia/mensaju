@@ -5,6 +5,8 @@ export type ApprovalStatus = "pending" | "approved" | "rejected" | "suspended";
 export interface Organization {
   id: ObjectIdString;
   name: string;
+  description?: string;
+  websiteUrl?: string;
   approvalStatus: ApprovalStatus;
   approvedAt?: string;
   approvedBy?: ObjectIdString;

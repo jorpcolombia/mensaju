@@ -26,6 +26,8 @@ export function toOrganizationDto(doc: WithId<OrganizationDoc>): Organization {
   return {
     id: id(doc._id),
     name: doc.name,
+    description: doc.description,
+    websiteUrl: doc.websiteUrl,
     approvalStatus: doc.approvalStatus,
     approvedAt: doc.approvedAt?.toISOString(),
     approvedBy: doc.approvedBy ? id(doc.approvedBy as unknown as Types.ObjectId) : undefined,

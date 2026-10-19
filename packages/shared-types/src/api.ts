@@ -20,6 +20,15 @@ export interface CreateOrganizationResponse {
   agent: Agent;
 }
 
+export interface UpdateOrganizationProfileRequest {
+  name?: string;
+  description?: string;
+  websiteUrl?: string;
+}
+export interface UpdateOrganizationProfileResponse {
+  organization: Organization;
+}
+
 export interface InviteAgentRequest {
   email: string;
   role: AgentRole;
@@ -121,6 +130,8 @@ export interface LinkIdentifierRequest {
 export interface OrganizationDirectoryEntry {
   id: string;
   name: string;
+  description?: string;
+  websiteUrl?: string;
 }
 export interface ListOrganizationDirectoryResponse {
   organizations: OrganizationDirectoryEntry[];
