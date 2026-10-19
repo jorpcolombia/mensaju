@@ -34,6 +34,14 @@ export const env = {
   customSmsApiUrl: process.env.CUSTOM_SMS_API_URL,
   customSmsApiKey: process.env.CUSTOM_SMS_API_KEY,
 
+  // Push. FCM: the service-account JSON (single line). APNs: .p8 key contents (escaped newlines ok).
+  fcmServiceAccountJson: process.env.FCM_SERVICE_ACCOUNT_JSON,
+  apnsKeyP8: process.env.APNS_KEY_P8,
+  apnsKeyId: process.env.APNS_KEY_ID,
+  apnsTeamId: process.env.APNS_TEAM_ID,
+  apnsBundleId: process.env.APNS_BUNDLE_ID,
+  apnsProduction: process.env.APNS_PRODUCTION === "true",
+
   resendApiKey: process.env.RESEND_API_KEY,
   emailFrom: process.env.EMAIL_FROM,
   webBaseUrl: process.env.WEB_BASE_URL ?? "http://localhost:3000",

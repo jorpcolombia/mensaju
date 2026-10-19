@@ -1,5 +1,6 @@
 import { Device } from "@messages/db";
 import type { Types } from "mongoose";
+import { InvalidPushTokenError } from "./pushTransports.js";
 
 export interface PushPayload {
   title: string;
@@ -34,7 +35,18 @@ async function sendToDevices(
 ): Promise<void> {
   const devices = await Device.find(filter);
   await Promise.allSettled(
-    devices.map((d) => transport.send({ platform: d.platform, token: d.token }, payload)),
+    devices.map(async (d) => {
+      try {
+        await transport.send({ platform: d.platform, token: d.token }, payload);
+      } catch (err) {
+        if (err instanceof InvalidPushTokenError) {
+          // The provider says this token is dead (app uninstalled or token rotated).
+          await Device.deleteOne({ _id: d._id });
+        } else {
+          console.error("[push] send failed", err);
+        }
+      }
+    }),
   );
 }
 

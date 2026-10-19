@@ -3,7 +3,8 @@ import { Types } from "mongoose";
 import type { AcceptAgentInviteRequest, AcceptAgentInviteResponse } from "@messages/shared-types";
 import { requireOrgSession } from "../middleware/auth.js";
 import { loadAgent } from "../middleware/agentContext.js";
-import { consumeAgentInvite } from "../lib/inviteStore.js";
+import { consumeAgentInvite, peekAgentInvite } from "../lib/inviteStore.js";
+import { getVerifiedEmails } from "../lib/clerkUsers.js";
 import { toAgentDto } from "../lib/dto.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { validateBody } from "../lib/validate.js";
@@ -35,6 +36,15 @@ agentsRouter.post(
       return res.status(409).json({ error: "agent_already_in_organization" });
     }
     const { inviteId } = req.body as AcceptAgentInviteRequest;
+    const pending = await peekAgentInvite(inviteId);
+    if (!pending) {
+      return res.status(410).json({ error: "invite_expired_or_invalid" });
+    }
+    // The invite is addressed to one email; a leaked link must not work for anyone else.
+    const emails = await getVerifiedEmails(req.clerkUserId!);
+    if (!emails.includes(pending.email.trim().toLowerCase())) {
+      return res.status(403).json({ error: "invite_email_mismatch" });
+    }
     const invite = await consumeAgentInvite(inviteId);
     if (!invite) {
       return res.status(410).json({ error: "invite_expired_or_invalid" });

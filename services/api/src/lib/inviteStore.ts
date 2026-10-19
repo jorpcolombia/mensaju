@@ -20,6 +20,12 @@ export async function createAgentInvite(invite: AgentInvite): Promise<string> {
   return inviteId;
 }
 
+/** Reads an invite without consuming it, so a wrong-account attempt does not burn the invite. */
+export async function peekAgentInvite(inviteId: string): Promise<AgentInvite | null> {
+  const raw = await redis.get(inviteKey(inviteId));
+  return raw ? (JSON.parse(raw) as AgentInvite) : null;
+}
+
 export async function consumeAgentInvite(inviteId: string): Promise<AgentInvite | null> {
   const key = inviteKey(inviteId);
   // GETDEL so two concurrent accepts cannot both consume the same invite.

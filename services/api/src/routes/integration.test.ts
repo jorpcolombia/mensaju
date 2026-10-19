@@ -81,6 +81,11 @@ vi.mock("@clerk/backend", () => ({
   },
 }));
 
+const clerkEmails = vi.hoisted(() => new Map<string, string[]>());
+vi.mock("../lib/clerkUsers.js", () => ({
+  getVerifiedEmails: async (id: string) => clerkEmails.get(id) ?? [],
+}));
+
 // ---- Test harness ---------------------------------------------------------
 
 // The in-memory mongod binary is downloaded on first use. Where that is impossible
@@ -126,6 +131,7 @@ afterAll(async () => {
 beforeEach(async () => {
   if (!mongo) return;
   store.clear();
+  clerkEmails.clear();
   s3Sizes.clear();
   published.length = 0;
   await Promise.all(
@@ -416,6 +422,43 @@ describeDb("devices and ably", () => {
     ]);
     expect(Object.keys(capability).some((k) => k.endsWith(":notifications"))).toBe(true);
     expect(Object.values(capability).flat()).not.toContain("publish");
+  });
+});
+
+describeDb("agent invites", () => {
+  it("only lets the invited email accept, without burning the invite on a wrong account", async () => {
+    const { org, token } = await makeOrg("approved");
+    const invite = await request(app)
+      .post(`/organizations/${org._id}/agents/invite`)
+      .set(auth(token))
+      .send({ email: "New.Hire@example.com", role: "member" });
+    expect(invite.status).toBe(201);
+    const { inviteId } = invite.body;
+
+    await db.Agent.create({ clerkUserId: "user_wrong", displayName: "Wrong" });
+    await db.Agent.create({ clerkUserId: "user_right", displayName: "Right" });
+    clerkEmails.set("user_wrong", ["someone.else@example.com"]);
+    clerkEmails.set("user_right", ["new.hire@example.com"]);
+
+    const wrong = await request(app)
+      .post("/agents/accept-invite")
+      .set(auth("clerk:org:user_wrong"))
+      .send({ inviteId });
+    expect(wrong.status).toBe(403);
+    expect(wrong.body.error).toBe("invite_email_mismatch");
+
+    const right = await request(app)
+      .post("/agents/accept-invite")
+      .set(auth("clerk:org:user_right"))
+      .send({ inviteId });
+    expect(right.status).toBe(200);
+    expect(right.body.agent.organizationId).toBe(String(org._id));
+
+    const replay = await request(app)
+      .post("/agents/accept-invite")
+      .set(auth("clerk:org:user_wrong"))
+      .send({ inviteId });
+    expect(replay.status).toBe(410);
   });
 });
 
