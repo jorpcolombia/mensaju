@@ -40,3 +40,6 @@ jobs:
 
       - name: Test
         run: pnpm test
+        env:
+          # Fail (rather than skip) if the in-memory MongoDB can't start.
+          REQUIRE_MONGO_TESTS: "1"

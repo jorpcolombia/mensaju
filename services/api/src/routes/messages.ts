@@ -28,12 +28,15 @@ import { fanOutNewMessage } from "../lib/messageDelivery.js";
 
 export const messagesRouter: ExpressRouter = Router();
 
-messagesRouter.use(resolveRequester);
+// This router is mounted at "/", so auth must be attached per route: a router-wide
+// resolveRequester would run for every later router too (e.g. /admin, which uses a
+// different Clerk app) and reject their tokens.
 
 const STATUS_RANK = { sent: 0, delivered: 1, read: 2 } as const;
 
 messagesRouter.get(
   "/conversations/:id/messages",
+  resolveRequester,
   asyncHandler(async (req, res) => {
     const { conversation, forbidden } = await loadAuthorizedConversation(req, req.params.id);
     if (forbidden) return res.status(403).json({ error: "forbidden" });
@@ -70,6 +73,7 @@ messagesRouter.get(
 
 messagesRouter.post(
   "/messages",
+  resolveRequester,
   validateBody(sendMessageSchema),
   asyncHandler(async (req, res) => {
     const { conversationId, organizationId, customer, text, attachments } =
@@ -202,6 +206,7 @@ messagesRouter.post(
 /** Marks one message delivered/read. Only the recipient (the other party) may do this, and status never goes backwards. */
 messagesRouter.post(
   "/messages/:id/status",
+  resolveRequester,
   validateBody(updateMessageStatusSchema),
   asyncHandler(async (req, res) => {
     const { status } = req.body as { status: "delivered" | "read" };
@@ -239,6 +244,7 @@ messagesRouter.post(
 /** Marks every unread message from the other party in a conversation as read. */
 messagesRouter.post(
   "/conversations/:id/read",
+  resolveRequester,
   asyncHandler(async (req, res) => {
     const { conversation, forbidden } = await loadAuthorizedConversation(req, req.params.id);
     if (forbidden) return res.status(403).json({ error: "forbidden" });
