@@ -4,21 +4,29 @@ import { useAuth } from "@clerk/nextjs";
 import type { Organization } from "@messages/shared-types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../lib/api";
+import { apiFetch } from "../../../lib/api";
 
 export default function OrganizationsQueuePage() {
   const { getToken } = useAuth();
   const [status, setStatus] = useState<Organization["approvalStatus"] | "">("pending");
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
     const token = await getToken();
     const query = status ? `?status=${status}` : "";
-    const { organizations } = await apiFetch<{ organizations: Organization[] }>(
-      `/admin/organizations${query}`,
-      token,
-    );
-    setOrganizations(organizations);
+    try {
+      const { organizations } = await apiFetch<{ organizations: Organization[] }>(
+        `/admin/organizations${query}`,
+        token,
+      );
+      setOrganizations(organizations);
+      setError(null);
+    } catch (err) {
+      setError(
+        String(err).includes(" 403 ") ? "Your account is not an admin." : "Could not load organizations.",
+      );
+    }
   }
 
   useEffect(() => {
@@ -29,6 +37,7 @@ export default function OrganizationsQueuePage() {
   return (
     <main>
       <h1>Organizations</h1>
+      {error && <p role="alert">{error}</p>}
       <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
         <option value="">All</option>
         <option value="pending">Pending</option>
@@ -39,7 +48,7 @@ export default function OrganizationsQueuePage() {
       <ul>
         {organizations.map((o) => (
           <li key={o.id}>
-            <Link href={`/organizations/${o.id}`}>{o.name}</Link> — {o.approvalStatus}
+            <Link href={`/admin/organizations/${o.id}`}>{o.name}</Link> — {o.approvalStatus}
           </li>
         ))}
       </ul>

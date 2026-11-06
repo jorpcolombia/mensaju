@@ -40,12 +40,21 @@ export function requireAgentRole(...roles: AgentDoc["role"][]) {
   };
 }
 
-/** Loads the `admins` doc for the verified Clerk user. Call after requireAdminSession(). */
+/**
+ * Loads (creating on first use) the `admins` doc for the verified Clerk user. The doc is
+ * only a stable id for audit-log references; authority comes from `config/admins.ts`,
+ * which requireAdminSession() already enforced.
+ */
 export async function loadAdmin(req: Request, res: Response, next: NextFunction) {
-  const admin = await Admin.findOne({ clerkUserId: req.clerkUserId });
-  if (!admin) {
-    return res.status(403).json({ error: "no_admin_record" });
+  try {
+    const admin = await Admin.findOneAndUpdate(
+      { clerkUserId: req.clerkUserId },
+      { $setOnInsert: { clerkUserId: req.clerkUserId, displayName: req.clerkUserId } },
+      { upsert: true, new: true },
+    );
+    req.admin = admin;
+    next();
+  } catch (err) {
+    next(err);
   }
-  req.admin = admin;
-  next();
 }

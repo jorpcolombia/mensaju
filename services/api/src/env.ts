@@ -7,22 +7,21 @@ function required(name: string): string {
 }
 
 export const env = {
-  port: Number(process.env.PORT ?? 4000),
+  port: Number(process.env.PORT ?? 3000),
   mongoUri: process.env.MONGODB_URI ?? "mongodb://localhost:27017/messages",
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
 
-  // Comma-separated list of allowed browser origins (apps/web, apps/admin).
-  corsOrigins: (process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:3001")
+  // Extra browser origins allowed to call the API cross-origin. The bundled web app is
+  // same-origin (/api), so this is only needed for other clients; empty by default.
+  corsOrigins: (process.env.CORS_ORIGINS ?? "")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
 
-  // Two separate Clerk applications — org/agent auth and admin auth are
-  // architecturally isolated, not just role-gated. See plan §3.
-  clerkOrgSecretKey: process.env.CLERK_ORG_SECRET_KEY,
-  clerkAdminSecretKey: process.env.CLERK_ADMIN_SECRET_KEY,
-  clerkOrgWebhookSigningSecret: process.env.CLERK_ORG_WEBHOOK_SIGNING_SECRET,
-  clerkAdminWebhookSigningSecret: process.env.CLERK_ADMIN_WEBHOOK_SIGNING_SECRET,
+  // A single Clerk application serves agents and admins. Admin access is granted by
+  // user id in `config/admins.ts`, not by a separate Clerk app.
+  clerkSecretKey: process.env.CLERK_SECRET_KEY,
+  clerkWebhookSigningSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET,
 
   ablyApiKey: process.env.ABLY_API_KEY,
 
@@ -55,12 +54,6 @@ export const env = {
   appleClientIds: (process.env.APPLE_OAUTH_CLIENT_ID ?? "")
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean),
-
-  // Only these emails may become admins when they sign up to the admin Clerk app.
-  adminAllowedEmails: (process.env.ADMIN_ALLOWED_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
 
   whatsappCloudApiToken: process.env.WHATSAPP_CLOUD_API_TOKEN,

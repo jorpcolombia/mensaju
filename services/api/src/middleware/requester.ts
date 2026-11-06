@@ -13,7 +13,7 @@ function bearerToken(req: Request): string | undefined {
 /**
  * Conversations/messages/Ably-token endpoints are shared between the
  * org/agent surface and the customer surface (plan §8). This middleware
- * accepts either a messages-org Clerk session or a customer JWT and sets
+ * accepts either a Clerk session or a customer JWT and sets
  * exactly one of req.agent / req.customerId.
  */
 export async function resolveRequester(req: Request, res: Response, next: NextFunction) {
@@ -22,9 +22,9 @@ export async function resolveRequester(req: Request, res: Response, next: NextFu
     return res.status(401).json({ error: "unauthenticated" });
   }
 
-  if (env.clerkOrgSecretKey) {
+  if (env.clerkSecretKey) {
     try {
-      const { sub } = await verifyToken(token, { secretKey: env.clerkOrgSecretKey });
+      const { sub } = await verifyToken(token, { secretKey: env.clerkSecretKey });
       const agent = await Agent.findOne({ clerkUserId: sub });
       if (agent) {
         req.clerkUserId = sub;

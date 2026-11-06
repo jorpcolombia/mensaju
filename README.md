@@ -78,8 +78,7 @@ This is a pnpm/Turborepo monorepo implementing the architecture above:
 
 ```
 apps/
-  web/       # Next.js — org/agent console (messages-org Clerk app) + customer web app at /c
-  admin/     # Next.js — admin panel (messages-admin Clerk app, isolated)
+  web/       # Next.js — org/agent console, customer web app at /c, admin panel at /admin
   ios/       # Swift source (native, no React Native) — no Xcode project yet
   android/   # Kotlin source (native) — Gradle files unverified
 services/
@@ -94,7 +93,7 @@ packages/
 
 Requires `pnpm` (`pnpm@11.20.0`) and Node `>=20`. Requires local MongoDB
 and Redis (or point `MONGODB_URI`/`REDIS_URL` at hosted instances), plus
-Clerk (two separate apps), Ably, S3, and the custom SMS/WhatsApp Cloud
+Clerk (one app; admins listed in `services/api/src/config/admins.ts`), Ably, S3, and the custom SMS/WhatsApp Cloud
 API credentials to exercise auth/messaging end-to-end.
 
 ### Quick start
@@ -114,13 +113,10 @@ filled in by hand (Clerk keys, Ably, S3, SMS/WhatsApp) after it runs.
 pnpm install
 cp services/api/.env.example services/api/.env      # then fill in secrets
 cp apps/web/.env.example apps/web/.env.local
-cp apps/admin/.env.example apps/admin/.env.local
 
 docker compose up -d mongo redis   # or point MONGODB_URI/REDIS_URL at hosted instances
 
-pnpm --filter @messages/api dev      # API on :4000
-pnpm --filter @messages/web dev      # Web on :3000
-pnpm --filter @messages/admin dev    # Admin on :3001
+pnpm --filter @messages/api dev      # monolith on :3000 — web, /admin and the REST API under /api
 ```
 
 ## Status
@@ -144,7 +140,8 @@ Not done / not verifiable without more tooling:
 
 ## Deployment
 
-Initial deploy target is **Railway** — each of `services/api`, `apps/web`,
-and `apps/admin` is a separate Railway service (see each directory's
-`railway.json`), with Railway's managed MongoDB and Redis plugins. S3
-stays on AWS. See the architecture plan's Deployment section for details.
+Single deployable: `services/api` runs the REST API (under `/api`) and serves the
+Next.js app from `apps/web` (org console, customer app at `/c`, admin panel at
+`/admin`) from one process on one port. Target is **Railway** (see
+`services/api/railway.json` / `Dockerfile`) with **MongoDB Atlas** (`MONGODB_URI`),
+Railway Redis, and S3 on AWS. Clerk webhook: `POST /api/webhooks/clerk`.

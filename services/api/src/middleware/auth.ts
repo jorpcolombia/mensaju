@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyToken } from "@clerk/backend";
 import { env } from "../env.js";
 import { verifyCustomerToken } from "../lib/customerSession.js";
+import { isAdminUserId } from "../config/admins.js";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -36,17 +37,26 @@ function clerkSessionMiddleware(secretKey: string | undefined) {
 }
 
 /**
- * Verifies a session issued by the `messages-org` Clerk app and attaches
- * `req.clerkUserId`. Route handlers resolve that to an internal `agents`
- * doc (and its `organizationId`/`role`) — see plan §3.
+ * Verifies a Clerk session and attaches `req.clerkUserId`. Route handlers resolve
+ * that to an internal `agents` doc (and its `organizationId`/`role`).
  */
 export function requireOrgSession() {
-  return clerkSessionMiddleware(env.clerkOrgSecretKey);
+  return clerkSessionMiddleware(env.clerkSecretKey);
 }
 
-/** Same as requireOrgSession, but against the fully separate `messages-admin` Clerk app. */
+/**
+ * Verifies a Clerk session (same Clerk app as agents) and requires the user id to be
+ * listed in `config/admins.ts`. Fails closed with 403 for everyone else.
+ */
 export function requireAdminSession() {
-  return clerkSessionMiddleware(env.clerkAdminSecretKey);
+  const verify = clerkSessionMiddleware(env.clerkSecretKey);
+  return (req: Request, res: Response, next: NextFunction) =>
+    verify(req, res, () => {
+      if (!isAdminUserId(req.clerkUserId)) {
+        return res.status(403).json({ error: "not_admin" });
+      }
+      next();
+    });
 }
 
 /** Verifies a backend-issued customer JWT (see plan §3 — customers are not Clerk users). */

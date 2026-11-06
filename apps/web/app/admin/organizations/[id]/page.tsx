@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import type { ApprovalAction, ApprovalAuditLogEntry, Organization } from "@messages/shared-types";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../../lib/api";
+import { apiFetch } from "../../../../lib/api";
 
 export default function OrganizationDetailPage() {
   const { id } = useParams<{ id: string }>();

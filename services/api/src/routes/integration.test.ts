@@ -4,8 +4,8 @@ import type { MongoMemoryServer } from "mongodb-memory-server";
 
 vi.hoisted(() => {
   process.env.CUSTOMER_JWT_SECRET = "test-customer-secret";
-  process.env.CLERK_ORG_SECRET_KEY = "org-secret";
-  process.env.CLERK_ADMIN_SECRET_KEY = "admin-secret";
+  process.env.CLERK_SECRET_KEY = "clerk-secret";
+  process.env.ADMIN_CLERK_USER_IDS = "admin_1";
   process.env.ABLY_API_KEY = "x.y:z";
   process.env.S3_BUCKET = "bucket";
   process.env.S3_REGION = "us-east-1";
@@ -69,14 +69,13 @@ vi.mock("../lib/s3.js", () => ({
   getObjectSize: async (k: string) => s3Sizes.get(k) ?? null,
 }));
 
-// Tokens look like "clerk:<app>:<userId>" and are only valid for the Clerk app whose
-// secret key verifies them, mirroring the two isolated Clerk applications. Anything
-// else (e.g. a customer JWT) is rejected so it falls through to the customer path.
+// Tokens look like "clerk:<userId>" and are only valid when verified with the Clerk
+// secret key. Anything else (e.g. a customer JWT) is rejected so it falls through to
+// the customer path.
 vi.mock("@clerk/backend", () => ({
   verifyToken: async (token: string, opts: { secretKey: string }) => {
-    const [prefix, app, sub] = token.split(":");
-    const expectedSecret = app === "org" ? "org-secret" : app === "admin" ? "admin-secret" : null;
-    if (prefix !== "clerk" || !sub || opts.secretKey !== expectedSecret) throw new Error("invalid");
+    const [prefix, sub] = token.split(":");
+    if (prefix !== "clerk" || !sub || opts.secretKey !== "clerk-secret") throw new Error("invalid");
     return { sub };
   },
 }));
@@ -157,7 +156,7 @@ async function makeOrg(approvalStatus: "pending" | "approved" | "suspended" | "r
     organizationId: org._id,
     role: "owner",
   });
-  return { org, agent, token: `clerk:org:user_${name}` };
+  return { org, agent, token: `clerk:user_${name}` };
 }
 
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -442,21 +441,21 @@ describeDb("agent invites", () => {
 
     const wrong = await request(app)
       .post("/agents/accept-invite")
-      .set(auth("clerk:org:user_wrong"))
+      .set(auth("clerk:user_wrong"))
       .send({ inviteId });
     expect(wrong.status).toBe(403);
     expect(wrong.body.error).toBe("invite_email_mismatch");
 
     const right = await request(app)
       .post("/agents/accept-invite")
-      .set(auth("clerk:org:user_right"))
+      .set(auth("clerk:user_right"))
       .send({ inviteId });
     expect(right.status).toBe(200);
     expect(right.body.agent.organizationId).toBe(String(org._id));
 
     const replay = await request(app)
       .post("/agents/accept-invite")
-      .set(auth("clerk:org:user_wrong"))
+      .set(auth("clerk:user_wrong"))
       .send({ inviteId });
     expect(replay.status).toBe(410);
   });
@@ -465,13 +464,14 @@ describeDb("agent invites", () => {
 describeDb("admin approval flow", () => {
   it("approves, suspends, and records an audit trail; lifts the rate limit on approval", async () => {
     const { org, token } = await makeOrg("pending");
-    await db.Admin.create({ clerkUserId: "admin_1", displayName: "Root" });
-    const adminToken = "clerk:admin:admin_1";
+    // Admin access comes from the code allowlist (ADMIN_CLERK_USER_IDS above); the
+    // `admins` doc is created on first use.
+    const adminToken = "clerk:admin_1";
 
-    // Admin session is a separate Clerk app: an org token must not work here.
+    // A regular agent session is valid Clerk but not allowlisted: forbidden.
     const crossover = await request(app).get("/admin/organizations").set(auth(token));
-    expect(crossover.status).toBe(401);
-    expect(crossover.body.error).toBe("invalid_session");
+    expect(crossover.status).toBe(403);
+    expect(crossover.body.error).toBe("not_admin");
 
     const approve = await request(app)
       .post(`/admin/organizations/${org._id}/approve`)

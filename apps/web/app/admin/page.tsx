@@ -12,7 +12,7 @@ export default function AdminHomePage() {
       <SignedIn>
         <UserButton />
         <p>
-          <Link href="/organizations">Review organizations (pending queue)</Link>
+          <Link href="/admin/organizations">Review organizations (pending queue)</Link>
         </p>
       </SignedIn>
     </main>
